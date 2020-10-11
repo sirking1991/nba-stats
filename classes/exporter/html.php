@@ -36,7 +36,7 @@ class HTMLDataExporter implements DataExporter {
         return $this->htmlTemplate('<table>' . $headings . $rows . '</table>');
     }
 
-    public function htmlTemplate($html) {
+    private function htmlTemplate($html) {
         return '
         <html>
         <head>

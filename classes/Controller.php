@@ -1,6 +1,6 @@
 <?php
 
-require_once('vendor/autoload.php');
+require_once('classes/custom_exceptions.php');
 
 class Controller {
 
@@ -10,35 +10,35 @@ class Controller {
 
     public function export($type, $format) {
         
-        $data = [];
-        
         try {
             $data = $this->dataSourceClass($type)->data($this->args);            
-        } catch (\Throwable $th) {
-            exit('Error: Invalid type - ' . $th->getMessage());
-        }
         
-        if (!$data) exit("Error: No data found!");
+            if (!$data) exit("Error: No data found!");
 
-        try {
             $exporter = $this->dataExporterClass($format);
             return $exporter->export($data);
-        } catch (\Throwable $th) {
-            exit('Error: Invalid format - ' . $th);
+        
+        } catch (\InvalidType $e) {
+            exit($e->getMessage());
+        } catch (\InvalidFormat $e) {
+            exit($e->getMessage());
         }
         
     }
 
     /**
-     * returns data exporter class based on passed format
+     * returns data source class based on passed type
      */
     private function dataSourceClass($type) 
     {    
-        $class = ucfirst($type) . 'DataSource';
-        include('classes/datasource/' . $type . '.php');
-        if (class_exists($class)) return new $class();
+        if (!file_exists('classes/datasource/' . $type . '.php')) {            
+            throw new InvalidType('Unsupported type: ' . $type);
+        }
 
-        //throw new Exception('Unsupported type: ' . $class);
+        include('classes/datasource/' . $type . '.php');
+        $class = ucfirst($type) . 'DataSource';
+        return new $class();
+        
     }
 
     /**
@@ -46,11 +46,14 @@ class Controller {
      */
     private function dataExporterClass($format) 
     {    
-        $class = strtoupper($format) . 'DataExporter';
-        include('classes/exporter/' . $format . '.php');
-        if (class_exists($class)) return new $class();
+        if (!file_exists('classes/exporter/' . $format . '.php')) {    
+            throw new InvalidFormat('Unsupported format: ' . $format);
+        }    
 
-        //throw new Exception('Unsupported format: ' . $class);
+        include('classes/exporter/' . $format . '.php');
+        $class = strtoupper($format) . 'DataExporter';
+        return new $class();
+        
     }
 
 
